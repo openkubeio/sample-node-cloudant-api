@@ -18,6 +18,7 @@ app.use(bodyParser.json());
  app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Methods", "PUT");
   next();
 }); 
 
@@ -36,8 +37,8 @@ app.get('/',function(req, res){
 
 
 //CONNECT TO CLOUDANT	
-var url = 'https://username:password@myhost.cloudant.com';
 
+var url = 'https://username:password@myhost.cloudant.com';
 
 
 var database01 = 'recdb-01user-resume-detail'
@@ -48,10 +49,15 @@ var database02 = 'recdb-02user-schedule-detail'
 var conn02s = require('cloudant-quickstart')(url,database02);
 
 var database03 = 'recdb-03user-exam-detail'
-var conn03e = require('cloudant-quickstart')(url,database02);
+var conn03e = require('cloudant-quickstart')(url,database03);
 
 var database04 = 'recdb-04user-recomendation-detail'
-var conn04r = require('cloudant-quickstart')(url,database02);
+var conn04r = require('cloudant-quickstart')(url,database04);
+
+var database05 = 'recdb-05user-questionnaire-detail'
+var conn05r = require('cloudant-quickstart')(url,database05);
+
+
 
 //ROUTES FOR OUR API
 var router = express.Router(); 
@@ -60,6 +66,8 @@ router.use(bodyParser.urlencoded({ extended: true }));
 //MIDDLEWARE to use for all requests
 router.use(function(req, res, next) {
    console.log(debug + '/api'+req.url);	
+   console.log(debug + 'req params ' +JSON.stringify(req.params,null,2));
+   console.log(debug + 'req body ' +JSON.stringify(req.body,null,2));
    next(); 
 });
 app.use('/api', router);
@@ -73,14 +81,29 @@ Test=function(req,res){
 
 
 function conection(dbname){
-	if(dbname=='recdb-01user-resume-detail')
+	
+	
+	
+	if(dbname=='recdb-01user-resume-detail'){
+		console.log(debug + 'returning connection...  conn01r');
 		return conn01r ;
-	else if(dbname=='recdb-02user-schedule-detail')
+	}
+	else if(dbname=='recdb-02user-schedule-detail'){
+		console.log(debug + 'returning connection...  conn02s');
 		return conn02s ;
-	else if(dbname=='recdb-03user-exam-detail')
+	}
+	else if(dbname=='recdb-03user-exam-detail'){
+		console.log(debug + 'returning connection...  conn03e');
 		return conn03e ;
-	else if(dbname=='recdb-04user-recomendation-detail')
+	}
+	else if(dbname=='recdb-04user-recomendation-detail'){
+		console.log(debug + 'returning connection...  conn04r');
 		return conn04r ;
+	}
+	else if(dbname=='recdb-05user-questionnaire-detail'){
+		console.log(debug + 'returning connection...  conn05r');
+		return conn05r ;
+	}
 }
 
 
@@ -89,9 +112,11 @@ function conection(dbname){
 
 getDocCountByParam=function(req,res){
 	
-	console.log(debug + 'getDocs');
+	console.log(debug + 'getDocCountByParam '  + req.params.xparam   );
+	console.log(debug + 'getDocCountByParam '  + req.params.bdxname  );
 	
-	DocCountByParam(req,conection(req.params.db-name))
+	
+	DocCountByParam(req,conection(req.params.bdxname))
 		.then(function(abcSuccessRsp)
 			{
 				res.send(JSON.stringify(abcSuccessRsp,null,2));
@@ -110,11 +135,11 @@ function DocCountByParam(req, con)
 	con.count(req.params.xparam)
 		.then(function(data){
 			console.log(debug + JSON.stringify(data));
-			deferred.resolve(data);
+			deferred.resolve({success:true, data:data});
 		})
 		.catch(function(err){
 			console.log(debug  + JSON.stringify(err));
-			deferred.resolve(err);
+			deferred.resolve({succes:false, error:err});
 		});
 		
 	return deferred.promise;
@@ -124,9 +149,10 @@ function DocCountByParam(req, con)
 
 getDocByID=function(req,res){
 	
-	console.log(debug + 'getDocByParam');
+	console.log(debug + 'getDocByID '  + req.params.id     );
+	console.log(debug + 'getDocByID '  + req.params.bdxname  );
 	
-	gtDocByID(req,conn01r)
+	gtDocByID(req,conection(req.params.bdxname))
 		.then(function(abcSuccessRsp)
 			{
 				res.send(JSON.stringify(abcSuccessRsp,null,2));
@@ -139,17 +165,17 @@ getDocByID=function(req,res){
 
 function gtDocByID(req, con)
 {
-	console.log(debug + 'Counting docs with param ' + req.params.id ) ;
+	console.log(debug + 'Fetching Doc by Id ' + req.params.id ) ;
 	var deferred = Q.defer();
 	
 	con.get(req.params.id)
 		.then(function(data){
 			console.log(debug + JSON.stringify(data));
-			deferred.resolve(data);
+			deferred.resolve({success:true, data:data});
 		})
 		.catch(function(err){
 			console.log(debug  + JSON.stringify(err));
-			deferred.resolve(err);
+			deferred.resolve({succes:false, error:err});
 		});
 		
 	return deferred.promise;
@@ -159,9 +185,10 @@ function gtDocByID(req, con)
 
 updateDocByID=function(req,res){
 	
-	console.log(debug + 'getDocByParam');
+	console.log(debug + 'updateDocByID '  + req.params.id     );
+	console.log(debug + 'updateDocByID '  + req.params.bdxname  );
 	
-	UpdtDocByID(req,conn01r)
+	UpdtDocByID(req,conection(req.params.bdxname))
 		.then(function(abcSuccessRsp)
 			{
 				res.send(JSON.stringify(abcSuccessRsp,null,2));
@@ -174,29 +201,32 @@ updateDocByID=function(req,res){
 
 function UpdtDocByID(req, con)
 {
-	console.log(debug + 'Counting docs with param ' + req.params.id ) ;
+	console.log(debug + 'Updating docs with param ' + req.params.id ) ;
 	var deferred = Q.defer();
 	
 	con.update(req.params.id, req.body, true)
 		.then(function(data){
 			console.log(debug + JSON.stringify(data));
-			deferred.resolve(data);
+			deferred.resolve({success:true, data:data});
 		})
 		.catch(function(err){
 			console.log(debug  + JSON.stringify(err));
-			deferred.resolve(err);
+			deferred.resolve({succes:false, error:err});
 		});
 		
 	return deferred.promise;
 }
 
+
+
 /*====================================================================================*/
 
 deleteDocByID=function(req,res){
 	
-	console.log(debug + 'getDocByParam');
+	console.log(debug + 'deleteDocByID '  + req.params.id     );
+	console.log(debug + 'deleteDocByID '  + req.params.bdxname  );
 	
-	DelDocByID(req,conn01r)
+	DelDocByID(req,conection(req.params.bdxname))
 		.then(function(abcSuccessRsp)
 			{
 				res.send(JSON.stringify(abcSuccessRsp,null,2));
@@ -209,17 +239,17 @@ deleteDocByID=function(req,res){
 
 function DelDocByID(req, con)
 {
-	console.log(debug + 'Counting docs with param ' + req.params.id ) ;
+	console.log(debug + 'Deletimg docs with param ' + req.params.id ) ;
 	var deferred = Q.defer();
 	
 	con.del(req.params.id)
 		.then(function(data){
 			console.log(debug + JSON.stringify(data));
-			deferred.resolve(data);
+			deferred.resolve({success:true, data:data});
 		})
 		.catch(function(err){
 			console.log(debug  + JSON.stringify(err));
-			deferred.resolve(err);
+			deferred.resolve({succes:false, error:err});
 		});
 		
 	return deferred.promise;
@@ -232,9 +262,10 @@ function DelDocByID(req, con)
 /*====================================================================================*/
 getDocByParam=function(req,res){
 	
-	console.log(debug + 'getDocByParam');
+	console.log(debug + 'getDocByParam '  + req.params.ppam + ' ' + req.params.pval );
+	console.log(debug + 'getDocByParam '  + req.params.bdxname  );
 	
-	DocByParam(req,conn01r)
+	DocByParam(req,conection(req.params.bdxname))
 		.then(function(abcSuccessRsp)
 			{
 				res.send(JSON.stringify(abcSuccessRsp,null,2));
@@ -247,17 +278,17 @@ getDocByParam=function(req,res){
 
 function DocByParam(req, con)
 {
-	console.log(debug + 'Counting docs with param ' + req.params.id ) ;
+	console.log(debug + 'Fetching docs with param ' + req.params.ppam + ' ' + req.params.pval  ) ;
 	var deferred = Q.defer();
 	
 	con.query({[req.params.ppam]:req.params.pval})
 		.then(function(data){
 			console.log(debug + JSON.stringify(data));
-			deferred.resolve(data);
+			deferred.resolve({success:true, data:data});
 		})
 		.catch(function(err){
 			console.log(debug  + JSON.stringify(err));
-			deferred.resolve(err);
+			deferred.resolve({succes:false, error:err});
 		});
 		
 	return deferred.promise;
@@ -270,7 +301,7 @@ getDocs=function(req,res){
 	
 	console.log(debug + 'getDocByParam');
 	
-	gtDocs(req,conn01r)
+	gtDocs(req,conection(req.params.bdxname))
 		.then(function(abcSuccessRsp)
 			{
 				res.send(JSON.stringify(abcSuccessRsp,null,2));
@@ -306,7 +337,7 @@ postDocs=function(req,res){
 	
 	console.log(debug + 'getDocByParam');
 	
-	pstDocs(req,conn01r)
+	pstDocs(req,conection(req.params.bdxname))
 		.then(function(abcSuccessRsp)
 			{
 				res.send(JSON.stringify(abcSuccessRsp,null,2));
@@ -340,18 +371,15 @@ function pstDocs(req, con)
 
 
 
-router.route('/').get(Test);	
+router.route('/:bdxname/docs/:xparam/count').get(getDocCountByParam);	
+router.route('/:bdxname/docs/:id').get(getDocByID)
+router.route('/:bdxname/docs/:id').put(updateDocByID)
+router.route('/:bdxname/docs/:id').delete(deleteDocByID)
+router.route('/:bdxname/docs/:ppam/:pval/').get(getDocByParam)
+router.route('/:bdxname/docs').get(getDocs)
+router.route('/:bdxname/docs').post(postDocs)
 
-
-router.route('/:db-name/docs/:xparam/count').get(getDocCountByParam);	
-router.route('/:db-name/docs/:id').get(getDocByID)
-router.route('/:db-name/docs/:id').put(updateDocByID)
-router.route('/:db-name/docs/:id').delete(deleteDocByID)
-router.route('/:db-name/docs/:ppam/:pval/').get(getDocByParam)
-router.route('/:db-name/docs').get(getDocs)
-router.route('/:db-name/docs').post(postDocs)
-
-
+router.route('/').get(Test);
 
 
 
@@ -360,63 +388,3 @@ router.route('/:db-name/docs').post(postDocs)
 
 
 
-
-
-
-/*
-
-//	var url = 'https://username:password@myhost.cloudant.com';
-	var url = 'https://888a621e-5a1c-4f99-9a47-e82a51dd3433-bluemix:81abdecc0c6da96ab107dcb5c28433f5811210766cb4eeafce17d6390b18002f@888a621e-5a1c-4f99-9a47-e82a51dd3433-bluemix.cloudant.com'
-	var database = 'user-profile'
-
-	var conn = require('cloudant-quickstart')(url,database);
-	
-	
-	conn.insert({username:'Jay S', useraddress:'178 Grren Park', uesracctnumber:6236353, userstatus:'Actve', loopback__model__name: 'model_user_profile'})
-        .then(console.log)
-		.catch(console.log);
-	
-	
-	conn.get('1829024825344')
-		.then(console.log)
-		.catch(console.log);
-		
-		
-	var id = '1829024825344';
-	var newdoc = {username:'Jay Rosa', useraddress:'200 Grren Park', uesracctnumber:6236353, userstatus:'Actve', loopback__model__name: 'model_user_profile'};
-	conn.update(id, newdoc)
-		.then(console.log)
-		.catch(console.log);
-
-	
-	var id = '7635491149053952';
-	conn.del(id)
-		.then(console.log)
-		.catch(console.log) ;
-		
-	
-//	conn.all({skip:300})
-/*	conn.all()
-		.then(console.log)
-		.catch(console.log) ;
-*/
-	
-
-
-/*	
-	conn.query({username: 'Jayy'})
-		.then(console.log)
-		.catch(console.log) ;
-		
-		
-	conn.count()
-		.then(console.log)
-		.catch(console.log) ;
-		
-		
-	conn.count('loopback__model__name')
-		.then(console.log)
-		.catch(console.log) ;
-	
-*/
-	
